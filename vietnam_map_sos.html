@@ -427,9 +427,114 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.3; }
         }
+
+        /* Notification System */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 20px 25px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            z-index: 20000;
+            min-width: 350px;
+            max-width: 500px;
+            transform: translateX(600px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .notification.show {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .notification.success {
+            border-left: 5px solid #4caf50;
+        }
+
+        .notification.error {
+            border-left: 5px solid #e74c3c;
+        }
+
+        .notification.info {
+            border-left: 5px solid #2196F3;
+        }
+
+        .notification-icon {
+            font-size: 32px;
+            flex-shrink: 0;
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-weight: 700;
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+
+        .notification-message {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .notification-close:hover {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(600px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(600px);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Notification Container -->
+    <div id="notificationContainer"></div>
+
     <div id="header">
         <div>
             <h1>🗺️ Vietnam Map + 🆘 SOS Emergency System</h1>
@@ -545,6 +650,9 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
     <script>
         // Initialize the map centered on Vietnam
         const map = L.map('map').setView([16.0, 106.0], 6);
@@ -559,6 +667,103 @@
         let sosMarkers = L.layerGroup().addTo(map);
         let selectedLocation = null;
         let uploadedImages = [];
+
+        // Initialize WebSocket connection
+        const socket = io('http://localhost:5000', {
+            transports: ['websocket', 'polling']
+        });
+
+        // WebSocket event handlers
+        socket.on('connect', () => {
+            console.log('🔗 Connected to server via WebSocket');
+            socket.emit('subscribe_sos');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('⛓️ Disconnected from server');
+        });
+
+        socket.on('subscribed', (data) => {
+            console.log('✅ ' + data.message);
+        });
+
+        // Listen for new SOS posts
+        socket.on('new_sos_post', (data) => {
+            console.log('🆕 New SOS post received:', data);
+            
+            // Show notification
+            showNotification(
+                'info',
+                '🆕 New Emergency Alert!',
+                `${data.post.user_name}: ${data.post.title} (${data.post.priority})`,
+                8000
+            );
+            
+            // Play notification sound (optional)
+            playNotificationSound();
+            
+            // Refresh the posts list
+            refreshSOSPosts();
+        });
+
+        // Notification sound function
+        function playNotificationSound() {
+            try {
+                // Create a simple beep sound
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+            } catch (e) {
+                console.log('Audio not supported');
+            }
+        }
+
+        // Notification System
+        function showNotification(type, title, message, duration = 5000) {
+            const container = document.getElementById('notificationContainer');
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            const icons = {
+                success: '✅',
+                error: '❌',
+                info: 'ℹ️',
+                warning: '⚠️'
+            };
+            
+            notification.innerHTML = `
+                <div class="notification-icon">${icons[type] || icons.info}</div>
+                <div class="notification-content">
+                    <div class="notification-title">${title}</div>
+                    <div class="notification-message">${message}</div>
+                </div>
+                <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Trigger animation
+            setTimeout(() => notification.classList.add('show'), 10);
+            
+            // Auto remove after duration
+            setTimeout(() => {
+                notification.classList.remove('show');
+                setTimeout(() => notification.remove(), 400);
+            }, duration);
+        }
 
         // SOS Modal functions
         function openSOSModal() {
@@ -669,15 +874,30 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    alert('✅ SOS Post created successfully!');
+                    showNotification(
+                        'success',
+                        'SOS Post Created!',
+                        `Your emergency post "${data.title}" has been published successfully. Post ID: #${result.post_id}`,
+                        6000
+                    );
                     closeSOSModal();
                     refreshSOSPosts();
                 } else {
-                    alert('❌ Error: ' + (result.error || 'Failed to create post'));
+                    showNotification(
+                        'error',
+                        'Failed to Create Post',
+                        result.error || 'Failed to create post. Please try again.',
+                        5000
+                    );
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('❌ Error creating SOS post. Make sure the server is running.');
+                showNotification(
+                    'error',
+                    'Connection Error',
+                    'Cannot connect to server. Make sure the server is running at http://localhost:5000',
+                    5000
+                );
             } finally {
                 document.getElementById('loading').classList.remove('show');
             }

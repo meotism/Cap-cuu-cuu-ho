@@ -6,13 +6,16 @@ This server provides APIs to fetch map data and serve the HTML interface.
 
 from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
+from flask_socketio import SocketIO, emit
 from map_manager import MapManager
 from sos_database import SOSDatabase
 import os
 import base64
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'sos-emergency-secret-key'
 CORS(app)  # Enable CORS for API requests
+socketio = SocketIO(app, cors_allowed_origins="*")  # Enable WebSocket with CORS
 
 # Initialize map manager
 map_manager = MapManager(cell_level=15, storage_dir="./map_data")
@@ -291,6 +294,27 @@ def health_check():
     })
 
 # ============================================================================
+# WEBSOCKET EVENT HANDLERS
+# ============================================================================
+
+@socketio.on('connect')
+def handle_connect():
+    """Handle client connection."""
+    print(f'✅ Client connected: {request.sid}')
+    emit('connected', {'message': 'Connected to SOS Emergency Server'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    """Handle client disconnection."""
+    print(f'❌ Client disconnected: {request.sid}')
+
+@socketio.on('subscribe_sos')
+def handle_subscribe():
+    """Handle subscription to SOS updates."""
+    print(f'📡 Client {request.sid} subscribed to SOS updates')
+    emit('subscribed', {'message': 'Subscribed to SOS emergency updates'})
+
+# ============================================================================
 # SOS EMERGENCY POSTS API
 # ============================================================================
 
@@ -337,6 +361,18 @@ def create_sos_post():
             priority=data.get('priority', 'medium'),
             images=data.get('images', [])
         )
+        
+        # Get the created post details
+        new_post = sos_db.get_post_by_id(post_id)
+        
+        # Broadcast to all connected clients via WebSocket
+        socketio.emit('new_sos_post', {
+            'post_id': post_id,
+            'post': new_post,
+            'message': f'New SOS: {data["title"]}'
+        })
+        
+        print(f'📢 Broadcasting new SOS post #{post_id} to all clients')
         
         return jsonify({
             'success': True,
@@ -554,8 +590,8 @@ def main():
     print("=" * 60)
     print()
     
-    # Start the server
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Start the server with WebSocket support
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
 
 if __name__ == '__main__':
     main()
