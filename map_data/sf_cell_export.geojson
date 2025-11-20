@@ -1,0 +1,747 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -122.3956799,
+            37.7938135
+          ],
+          [
+            -122.3956596,
+            37.7937982
+          ],
+          [
+            -122.3955477,
+            37.7937089
+          ],
+          [
+            -122.395249,
+            37.7934731
+          ],
+          [
+            -122.3946093,
+            37.7929682
+          ],
+          [
+            -122.3941776,
+            37.7926266
+          ],
+          [
+            -122.3940959,
+            37.792562
+          ]
+        ]
+      },
+      "properties": {
+        "road_id": 120256351,
+        "cell_id": "80858066c",
+        "highway": "tertiary",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed:type": "US:urban",
+        "name": "Spear Street",
+        "oneway": "no",
+        "sidewalk": "separate",
+        "smoothness": "good",
+        "surface": "asphalt",
+        "tiger:cfcc": "A41",
+        "tiger:county": "San Francisco, CA",
+        "tiger:name_base": "Spear",
+        "tiger:name_type": "St",
+        "trolley_wire": "yes"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -122.3963597,
+            37.7932761
+          ],
+          [
+            -122.3960479,
+            37.7935233
+          ],
+          [
+            -122.395791,
+            37.793726
+          ],
+          [
+            -122.3956799,
+            37.7938135
+          ]
+        ]
+      },
+      "properties": {
+        "road_id": 224200968,
+        "cell_id": "80858066c",
+        "bicycle": "yes",
+        "cycleway:right": "shared_lane",
+        "foot": "yes",
+        "highway": "tertiary",
+        "lanes": "2",
+        "lit": "yes",
+        "maxspeed": "20 mph",
+        "name": "Market Street",
+        "oneway": "yes",
+        "oneway:bicycle": "no",
+        "oneway:bus": "no",
+        "oneway:psv": "no",
+        "oneway:taxi": "no",
+        "sidewalk": "separate",
+        "surface": "asphalt",
+        "tiger:cfcc": "A45",
+        "tiger:county": "San Francisco, CA",
+        "tiger:name_base": "Market",
+        "tiger:name_type": "St",
+        "trolley_wire": "yes"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -122.3956799,
+            37.7938135
+          ],
+          [
+            -122.3955738,
+            37.793897
+          ],
+          [
+            -122.3951338,
+            37.7942447
+          ]
+        ]
+      },
+      "properties": {
+        "road_id": 619590730,
+        "cell_id": "80858066c",
+        "bicycle": "yes",
+        "cycleway:right": "shared_lane",
+        "cycleway:right:lane": "pictogram",
+        "foot": "yes",
+        "highway": "tertiary",
+        "lanes": "2",
+        "maxspeed": "20 mph",
+        "name": "Market Street",
+        "oneway": "yes",
+        "oneway:bicycle": "no",
+        "oneway:bus": "no",
+        "oneway:psv": "no",
+        "oneway:taxi": "no",
+        "sidewalk": "separate",
+        "surface": "asphalt",
+        "tiger:cfcc": "A45",
+        "tiger:county": "San Francisco, CA",
+        "tiger:name_base": "Market",
+        "tiger:name_type": "St",
+        "trolley_wire": "yes"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -122.3951338,
+            37.7942447
+          ],
+          [
+            -122.3949741,
+            37.7943696
+          ]
+        ]
+      },
+      "properties": {
+        "road_id": 680402686,
+        "cell_id": "80858066c",
+        "bicycle": "yes",
+        "foot": "yes",
+        "highway": "tertiary",
+        "name": "Market Street",
+        "oneway": "yes",
+        "oneway:bicycle": "no",
+        "oneway:bus": "no",
+        "oneway:psv": "no",
+        "oneway:taxi": "no",
+        "sidewalk": "separate",
+        "surface": "asphalt",
+        "tiger:cfcc": "A45",
+        "tiger:county": "San Francisco, CA",
+        "tiger:name_base": "Market",
+        "tiger:name_type": "St",
+        "trolley_wire": "yes"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3956799,
+          37.7938135
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 1723738865,
+        "connected_roads": [
+          224200968,
+          619590730,
+          120256351
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3949723,
+          37.7945509
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658813,
+        "connected_roads": [
+          196662085,
+          128479079
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3950332,
+          37.7945026
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069694240,
+        "connected_roads": [
+          196667174,
+          128479079
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3956868,
+          37.7939854
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 7209258450,
+        "connected_roads": [
+          772237760,
+          128479079
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3947025,
+          37.7949402
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658720,
+        "connected_roads": [
+          196662072,
+          196662092
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3946747,
+          37.7949183
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658653,
+        "connected_roads": [
+          196662072,
+          196662089
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3947928,
+          37.794824
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658658,
+        "connected_roads": [
+          196662072,
+          196662089
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3950861,
+          37.7948093
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658899,
+        "connected_roads": [
+          196662072,
+          196662089
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3953353,
+          37.7949973
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658764,
+        "connected_roads": [
+          196662072,
+          196662089
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3954412,
+          37.7949867
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658834,
+        "connected_roads": [
+          196662072,
+          196662089
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3956336,
+          37.7951377
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658843,
+        "connected_roads": [
+          196662072,
+          196662089
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3956685,
+          37.7953163
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658827,
+        "connected_roads": [
+          196662072,
+          196662089
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3957066,
+          37.7953415
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658662,
+        "connected_roads": [
+          196662072,
+          196662089
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3956316,
+          37.7955208
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658839,
+        "connected_roads": [
+          196662072,
+          196662092
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.395718,
+          37.7955062
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658838,
+        "connected_roads": [
+          196662072,
+          196662092
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3956783,
+          37.7953613
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658780,
+        "connected_roads": [
+          196662072,
+          196662092
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3956419,
+          37.7953363
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658841,
+        "connected_roads": [
+          196662072,
+          196662092
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3956124,
+          37.7951711
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658840,
+        "connected_roads": [
+          196662072,
+          196662092
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3954238,
+          37.7950174
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658842,
+        "connected_roads": [
+          196662072,
+          196662092
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3953265,
+          37.795027
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658719,
+        "connected_roads": [
+          196662072,
+          196662092
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3950646,
+          37.7948368
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658684,
+        "connected_roads": [
+          196662072,
+          196662092
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3948136,
+          37.7948505
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658686,
+        "connected_roads": [
+          196662072,
+          196662092
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3952249,
+          37.7947549
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 3842669518,
+        "connected_roads": [
+          196662085,
+          944095687
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3950254,
+          37.7945946
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 2069658900,
+        "connected_roads": [
+          196662089,
+          196662085
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3952723,
+          37.7947482
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 10164958604,
+        "connected_roads": [
+          196662089,
+          944095687
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3954407,
+          37.7937936
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 6250503694,
+        "connected_roads": [
+          550660818,
+          196667173
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3954658,
+          37.7937741
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 7228212656,
+        "connected_roads": [
+          774719162,
+          196667173,
+          667569470
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3956111,
+          37.7939269
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 1419794100,
+        "connected_roads": [
+          772237760,
+          550660818
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3955738,
+          37.793897
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 5318541609,
+        "connected_roads": [
+          550660818,
+          619590730
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.3951338,
+          37.7942447
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 5854920838,
+        "connected_roads": [
+          619590730,
+          680402686
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.395451,
+          37.7947235
+        ]
+      },
+      "properties": {
+        "type": "intersection",
+        "node_id": 8741014653,
+        "connected_roads": [
+          944095686,
+          944095687
+        ]
+      }
+    }
+  ]
+}
