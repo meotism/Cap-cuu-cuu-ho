@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vietnam Map - OSM + S2 Cells Visualization</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+        }
+
+        #header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        #header h1 {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        #header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        #container {
+            display: flex;
+            height: calc(100vh - 100px);
+        }
+
+        #sidebar {
+            width: 350px;
+            background: white;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        #map {
+            flex: 1;
+            height: 100%;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        .control-group h3 {
+            color: #667eea;
+            font-size: 16px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .city-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: left;
+        }
+
+        .city-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .city-btn .emoji {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        .input-group {
+            margin: 12px 0;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin: 12px 0;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            font-size: 14px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .info-box {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .info-box h4 {
+            color: #667eea;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #e0e0e0;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #777;
+            margin-top: 4px;
+        }
+
+        .loading {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px 50px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            z-index: 10000;
+            text-align: center;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Custom Leaflet popup styles */
+        .custom-popup {
+            font-size: 13px;
+        }
+
+        .custom-popup h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .custom-popup p {
+            margin: 4px 0;
+        }
+
+        /* Scrollbar styling */
+        #sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        #sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        #sidebar::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 4px;
+        }
+
+        #sidebar::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <h1>🗺️ Vietnam Map Visualization</h1>
+        <p>Interactive map with OpenStreetMap data and S2 cell indexing</p>
+    </div>
+
+    <div id="container">
+        <div id="sidebar">
+            <div class="control-group">
+                <h3>🏙️ Major Cities</h3>
+                <button class="city-btn" onclick="goToCity('hanoi')">
+                    <span class="emoji">🏛️</span> Hanoi (Capital)
+                </button>
+                <button class="city-btn" onclick="goToCity('hcmc')">
+                    <span class="emoji">🌆</span> Ho Chi Minh City
+                </button>
+                <button class="city-btn" onclick="goToCity('danang')">
+                    <span class="emoji">🏖️</span> Da Nang
+                </button>
+                <button class="city-btn" onclick="goToCity('haiphong')">
+                    <span class="emoji">⚓</span> Hai Phong
+                </button>
+                <button class="city-btn" onclick="goToCity('hue')">
+                    <span class="emoji">🏯</span> Hue
+                </button>
+                <button class="city-btn" onclick="goToCity('nhatrang')">
+                    <span class="emoji">🏝️</span> Nha Trang
+                </button>
+                <button class="city-btn" onclick="goToCity('vietnam')">
+                    <span class="emoji">🇻🇳</span> View All Vietnam
+                </button>
+            </div>
+
+            <div class="control-group">
+                <h3>🎯 Custom Location</h3>
+                <div class="input-group">
+                    <label>Latitude:</label>
+                    <input type="number" id="lat" value="21.0285" step="0.0001" placeholder="e.g., 21.0285">
+                </div>
+                <div class="input-group">
+                    <label>Longitude:</label>
+                    <input type="number" id="lng" value="105.8542" step="0.0001" placeholder="e.g., 105.8542">
+                </div>
+                <button class="btn" onclick="goToCustomLocation()">📍 Go to Location</button>
+            </div>
+
+            <div class="control-group">
+                <h3>🔧 S2 Cell Options</h3>
+                <div class="input-group">
+                    <label>Cell Level (10-17):</label>
+                    <input type="number" id="cellLevel" value="15" min="10" max="17">
+                    <small style="color: #777; font-size: 11px; display: block; margin-top: 4px;">
+                        Level 15 ≈ 1km, Level 13 ≈ 4km, Level 17 ≈ 250m
+                    </small>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showS2Cells" onchange="toggleS2Cells()">
+                    <label for="showS2Cells">Show S2 Cell Grid</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="showCellLabels" onchange="toggleCellLabels()">
+                    <label for="showCellLabels">Show Cell IDs</label>
+                </div>
+
+                <button class="btn" onclick="drawS2CellsInView()">🔲 Draw S2 Cells</button>
+            </div>
+
+            <div class="control-group">
+                <h3>🛣️ Fetch Map Data</h3>
+                <button class="btn btn-secondary" onclick="fetchRoadsInView()">
+                    📥 Fetch Roads from OSM
+                </button>
+                <div class="info-box">
+                    <h4>ℹ️ Note</h4>
+                    <p>Fetching roads requires the Python backend to be running. Click the button above to fetch road data for the current map view.</p>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>📊 Statistics</h3>
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="cellCount">0</div>
+                        <div class="stat-label">S2 Cells</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="roadCount">0</div>
+                        <div class="stat-label">Roads</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="markerCount">0</div>
+                        <div class="stat-label">Markers</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="zoomLevel">6</div>
+                        <div class="stat-label">Zoom Level</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="map"></div>
+    </div>
+
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Loading map data...</p>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // Initialize the map centered on Vietnam
+        const map = L.map('map').setView([16.0, 106.0], 6);
+
+        // Add OpenStreetMap tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Store layers
+        let s2CellLayer = L.layerGroup().addTo(map);
+        let roadLayer = L.layerGroup().addTo(map);
+        let markerLayer = L.layerGroup().addTo(map);
+        let cellLabelLayer = L.layerGroup().addTo(map);
+
+        // Vietnam cities coordinates
+        const cities = {
+            hanoi: { lat: 21.0285, lng: 105.8542, zoom: 13, name: 'Hanoi' },
+            hcmc: { lat: 10.8231, lng: 106.6297, zoom: 13, name: 'Ho Chi Minh City' },
+            danang: { lat: 16.0544, lng: 108.2022, zoom: 13, name: 'Da Nang' },
+            haiphong: { lat: 20.8449, lng: 106.6881, zoom: 13, name: 'Hai Phong' },
+            hue: { lat: 16.4637, lng: 107.5909, zoom: 13, name: 'Hue' },
+            nhatrang: { lat: 12.2388, lng: 109.1967, zoom: 13, name: 'Nha Trang' },
+            vietnam: { lat: 16.0, lng: 106.0, zoom: 6, name: 'Vietnam' }
+        };
+
+        // Statistics
+        let stats = {
+            cells: 0,
+            roads: 0,
+            markers: 0
+        };
+
+        // Go to a specific city
+        function goToCity(cityKey) {
+            const city = cities[cityKey];
+            map.flyTo([city.lat, city.lng], city.zoom, {
+                duration: 1.5
+            });
+
+            // Add marker for the city
+            const marker = L.marker([city.lat, city.lng])
+                .bindPopup(`<div class="custom-popup">
+                    <h4>${city.name}</h4>
+                    <p><strong>Lat:</strong> ${city.lat.toFixed(4)}</p>
+                    <p><strong>Lng:</strong> ${city.lng.toFixed(4)}</p>
+                </div>`)
+                .addTo(markerLayer);
+            
+            stats.markers++;
+            updateStats();
+        }
+
+        // Go to custom location
+        function goToCustomLocation() {
+            const lat = parseFloat(document.getElementById('lat').value);
+            const lng = parseFloat(document.getElementById('lng').value);
+
+            if (isNaN(lat) || isNaN(lng)) {
+                alert('Please enter valid coordinates');
+                return;
+            }
+
+            map.flyTo([lat, lng], 15, { duration: 1.5 });
+
+            const marker = L.marker([lat, lng])
+                .bindPopup(`<div class="custom-popup">
+                    <h4>Custom Location</h4>
+                    <p><strong>Lat:</strong> ${lat.toFixed(6)}</p>
+                    <p><strong>Lng:</strong> ${lng.toFixed(6)}</p>
+                </div>`)
+                .addTo(markerLayer);
+            
+            stats.markers++;
+            updateStats();
+        }
+
+        // S2 Cell generation (simplified client-side approximation)
+        function drawS2CellsInView() {
+            const bounds = map.getBounds();
+            const cellLevel = parseInt(document.getElementById('cellLevel').value) || 15;
+            
+            // Clear existing cells
+            s2CellLayer.clearLayers();
+            cellLabelLayer.clearLayers();
+            stats.cells = 0;
+
+            // Approximate cell size based on level (very rough approximation)
+            const cellSizes = {
+                10: 30, 11: 15, 12: 7.5, 13: 4, 14: 2, 15: 1, 16: 0.5, 17: 0.25
+            };
+            const cellSize = cellSizes[cellLevel] || 1;
+            const step = cellSize / 111; // Convert km to degrees (rough)
+
+            const minLat = bounds.getSouth();
+            const maxLat = bounds.getNorth();
+            const minLng = bounds.getWest();
+            const maxLng = bounds.getEast();
+
+            // Generate grid cells
+            let cellId = 1;
+            for (let lat = minLat; lat < maxLat; lat += step) {
+                for (let lng = minLng; lng < maxLng; lng += step) {
+                    const cellBounds = [
+                        [lat, lng],
+                        [lat + step, lng],
+                        [lat + step, lng + step],
+                        [lat, lng + step]
+                    ];
+
+                    const polygon = L.polygon(cellBounds, {
+                        color: '#667eea',
+                        weight: 2,
+                        fillColor: '#667eea',
+                        fillOpacity: 0.1
+                    }).addTo(s2CellLayer);
+
+                    const center = [(lat + lat + step) / 2, (lng + lng + step) / 2];
+                    const cellToken = `cell_${cellId}`;
+
+                    polygon.bindPopup(`<div class="custom-popup">
+                        <h4>S2 Cell</h4>
+                        <p><strong>ID:</strong> ${cellToken}</p>
+                        <p><strong>Level:</strong> ${cellLevel}</p>
+                        <p><strong>Center:</strong> ${center[0].toFixed(5)}, ${center[1].toFixed(5)}</p>
+                        <p><strong>Size:</strong> ~${cellSize} km</p>
+                    </div>`);
+
+                    // Add label if enabled
+                    if (document.getElementById('showCellLabels').checked) {
+                        const label = L.marker(center, {
+                            icon: L.divIcon({
+                                className: 'cell-label',
+                                html: `<div style="background: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; border: 1px solid #667eea;">${cellToken}</div>`,
+                                iconSize: [60, 20]
+                            })
+                        }).addTo(cellLabelLayer);
+                    }
+
+                    stats.cells++;
+                    cellId++;
+                }
+            }
+
+            updateStats();
+        }
+
+        // Toggle S2 cells visibility
+        function toggleS2Cells() {
+            if (document.getElementById('showS2Cells').checked) {
+                map.addLayer(s2CellLayer);
+            } else {
+                map.removeLayer(s2CellLayer);
+            }
+        }
+
+        // Toggle cell labels
+        function toggleCellLabels() {
+            if (document.getElementById('showCellLabels').checked) {
+                map.addLayer(cellLabelLayer);
+                drawS2CellsInView(); // Redraw to add labels
+            } else {
+                map.removeLayer(cellLabelLayer);
+                cellLabelLayer.clearLayers();
+            }
+        }
+
+        // Fetch roads from OSM (requires Python backend)
+        async function fetchRoadsInView() {
+            const bounds = map.getBounds();
+            const data = {
+                min_lat: bounds.getSouth(),
+                min_lng: bounds.getWest(),
+                max_lat: bounds.getNorth(),
+                max_lng: bounds.getEast()
+            };
+
+            document.getElementById('loading').classList.add('show');
+
+            try {
+                // This would call your Python backend API
+                const response = await fetch('http://localhost:5000/api/fetch-roads', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) throw new Error('Backend not available');
+
+                const roads = await response.json();
+                displayRoads(roads);
+            } catch (error) {
+                console.error('Error fetching roads:', error);
+                alert('⚠️ Python backend is not running.\n\nTo fetch real OSM data, start the Flask server:\npython map_server.py\n\nFor now, displaying demo roads.');
+                displayDemoRoads();
+            } finally {
+                document.getElementById('loading').classList.remove('show');
+            }
+        }
+
+        // Display demo roads (when backend is not available)
+        function displayDemoRoads() {
+            const center = map.getCenter();
+            const offset = 0.01;
+
+            roadLayer.clearLayers();
+            stats.roads = 0;
+
+            // Create some demo roads
+            const demoRoads = [
+                {
+                    name: 'Main Street',
+                    coords: [
+                        [center.lat - offset, center.lng - offset],
+                        [center.lat + offset, center.lng + offset]
+                    ],
+                    type: 'primary'
+                },
+                {
+                    name: 'Second Avenue',
+                    coords: [
+                        [center.lat + offset, center.lng - offset],
+                        [center.lat - offset, center.lng + offset]
+                    ],
+                    type: 'secondary'
+                }
+            ];
+
+            demoRoads.forEach(road => {
+                const polyline = L.polyline(road.coords, {
+                    color: road.type === 'primary' ? '#ff6b6b' : '#4ecdc4',
+                    weight: 4
+                }).addTo(roadLayer);
+
+                polyline.bindPopup(`<div class="custom-popup">
+                    <h4>${road.name}</h4>
+                    <p><strong>Type:</strong> ${road.type}</p>
+                    <p><strong>Status:</strong> Demo Data</p>
+                </div>`);
+
+                stats.roads++;
+            });
+
+            updateStats();
+        }
+
+        // Display real roads from backend
+        function displayRoads(roadsData) {
+            roadLayer.clearLayers();
+            stats.roads = 0;
+
+            roadsData.roads.forEach(road => {
+                if (road.node_coords && road.node_coords.length > 1) {
+                    const coords = road.node_coords.map(coord => [coord[0], coord[1]]);
+                    
+                    const polyline = L.polyline(coords, {
+                        color: getRoadColor(road.tags.highway),
+                        weight: getRoadWeight(road.tags.highway)
+                    }).addTo(roadLayer);
+
+                    const metadata = road.metadata || road.tags;
+                    polyline.bindPopup(`<div class="custom-popup">
+                        <h4>${metadata.name || 'Unnamed Road'}</h4>
+                        <p><strong>Type:</strong> ${metadata.highway_type || metadata.highway}</p>
+                        <p><strong>One-way:</strong> ${metadata.oneway ? 'Yes' : 'No'}</p>
+                        ${metadata.maxspeed ? `<p><strong>Speed:</strong> ${metadata.maxspeed}</p>` : ''}
+                    </div>`);
+
+                    stats.roads++;
+                }
+            });
+
+            updateStats();
+        }
+
+        // Get road color based on type
+        function getRoadColor(type) {
+            const colors = {
+                motorway: '#e74c3c',
+                trunk: '#e67e22',
+                primary: '#f39c12',
+                secondary: '#f1c40f',
+                tertiary: '#2ecc71',
+                residential: '#3498db',
+                default: '#95a5a6'
+            };
+            return colors[type] || colors.default;
+        }
+
+        // Get road weight based on type
+        function getRoadWeight(type) {
+            const weights = {
+                motorway: 6,
+                trunk: 5,
+                primary: 4,
+                secondary: 3,
+                tertiary: 2,
+                residential: 2,
+                default: 2
+            };
+            return weights[type] || weights.default;
+        }
+
+        // Update statistics display
+        function updateStats() {
+            document.getElementById('cellCount').textContent = stats.cells;
+            document.getElementById('roadCount').textContent = stats.roads;
+            document.getElementById('markerCount').textContent = stats.markers;
+            document.getElementById('zoomLevel').textContent = map.getZoom();
+        }
+
+        // Update zoom level on map zoom
+        map.on('zoom', updateStats);
+
+        // Add click handler to show coordinates
+        map.on('click', function(e) {
+            const lat = e.latlng.lat.toFixed(6);
+            const lng = e.latlng.lng.toFixed(6);
+            
+            L.popup()
+                .setLatLng(e.latlng)
+                .setContent(`<div class="custom-popup">
+                    <h4>📍 Location</h4>
+                    <p><strong>Lat:</strong> ${lat}</p>
+                    <p><strong>Lng:</strong> ${lng}</p>
+                    <button onclick="document.getElementById('lat').value=${lat}; document.getElementById('lng').value=${lng};" 
+                            style="padding: 6px 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 8px;">
+                        Use These Coordinates
+                    </button>
+                </div>`)
+                .openOn(map);
+        });
+
+        // Initialize
+        updateStats();
+        
+        // Add welcome marker on Hanoi
+        setTimeout(() => {
+            goToCity('hanoi');
+        }, 500);
+
+        console.log('🗺️ Vietnam Map Visualization loaded!');
+        console.log('Click on the map to get coordinates');
+        console.log('Use the sidebar controls to explore');
+    </script>
+</body>
+</html>
