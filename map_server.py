@@ -15,7 +15,7 @@ import base64
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'sos-emergency-secret-key'
 CORS(app)  # Enable CORS for API requests
-socketio = SocketIO(app, cors_allowed_origins="*")  # Enable WebSocket with CORS
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')  # Enable WebSocket with CORS
 
 # Initialize map manager
 map_manager = MapManager(cell_level=15, storage_dir="./map_data")

@@ -63,6 +63,15 @@ if [ ! -f "map_server.py" ]; then
     exit 1
 fi
 
+# Check if port 5000 is already in use
+if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null 2>&1 ; then
+    echo "⚠️  Port 5000 is already in use"
+    echo "Stopping existing server..."
+    kill -9 $(lsof -t -i:5000) 2>/dev/null
+    sleep 2
+    echo "✅ Port cleared"
+fi
+
 echo ""
 echo "=========================================="
 echo "🚀 Starting server..."

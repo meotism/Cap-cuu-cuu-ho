@@ -605,7 +605,12 @@
 
                 <div class="form-group">
                     <label>Location *</label>
-                    <input type="text" id="sosLocation" readonly placeholder="Click on map to set location" style="cursor: help;">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="sosLocation" readonly placeholder="Click on map to set location" style="cursor: help; flex: 1;">
+                        <button type="button" class="btn" onclick="getCurrentLocation()" style="padding: 10px 15px; white-space: nowrap;">
+                            📍 Current Location
+                        </button>
+                    </div>
                     <small style="color: #e74c3c; font-size: 13px; display: block; margin-top: 5px; font-weight: 600;">
                         👉 Click anywhere on the map behind this form to set your location
                     </small>
@@ -668,8 +673,10 @@
         let selectedLocation = null;
         let uploadedImages = [];
 
-        // Initialize WebSocket connection
-        const socket = io('http://localhost:5000', {
+        // Initialize WebSocket connection - auto-detect server URL
+        const serverUrl = window.location.origin; // Uses current page's protocol, host, and port
+        console.log('🔗 Connecting to WebSocket server:', serverUrl);
+        const socket = io(serverUrl, {
             transports: ['websocket', 'polling']
         });
 
@@ -677,6 +684,9 @@
         socket.on('connect', () => {
             console.log('🔗 Connected to server via WebSocket');
             socket.emit('subscribe_sos');
+            
+            // Load existing posts when connected
+            refreshSOSPosts();
         });
 
         socket.on('disconnect', () => {
@@ -784,9 +794,53 @@
 
         function selectSOSLocation(e) {
             selectedLocation = e.latlng;
-            document.getElementById('sosLocation').value = `📍 Location Selected: ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
-            document.getElementById('sosLat').textContent = e.latlng.lat.toFixed(6);
-            document.getElementById('sosLng').textContent = e.latlng.lng.toFixed(6);
+            updateLocationDisplay(e.latlng.lat, e.latlng.lng);
+        }
+
+        function getCurrentLocation() {
+            const btn = event.target;
+            btn.disabled = true;
+            btn.textContent = '⏳ Getting...';
+            
+            if (!navigator.geolocation) {
+                showNotification('❌ Geolocation not supported', 'error');
+                btn.disabled = false;
+                btn.textContent = '📍 Current Location';
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    selectedLocation = { lat, lng };
+                    updateLocationDisplay(lat, lng);
+                    
+                    // Center map on current location
+                    map.setView([lat, lng], 15);
+                    
+                    showNotification('✅ Current location set!', 'success');
+                    btn.disabled = false;
+                    btn.textContent = '📍 Current Location';
+                },
+                (error) => {
+                    let errorMsg = '❌ Could not get location';
+                    if (error.code === 1) errorMsg = '❌ Location access denied';
+                    if (error.code === 2) errorMsg = '❌ Location unavailable';
+                    if (error.code === 3) errorMsg = '❌ Location timeout';
+                    
+                    showNotification(errorMsg, 'error');
+                    btn.disabled = false;
+                    btn.textContent = '📍 Current Location';
+                }
+            );
+        }
+
+        function updateLocationDisplay(lat, lng) {
+            document.getElementById('sosLocation').value = `📍 Location Selected: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            document.getElementById('sosLat').textContent = lat.toFixed(6);
+            document.getElementById('sosLng').textContent = lng.toFixed(6);
             
             // Visual feedback
             document.getElementById('sosLocation').style.background = '#e8f5e9';
@@ -794,7 +848,7 @@
             
             // Add temporary marker
             sosMarkers.clearLayers();
-            L.marker([e.latlng.lat, e.latlng.lng], {
+            L.marker([lat, lng], {
                 icon: L.icon({
                     iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSIxNCIgZmlsbD0iI2U3NGMzYyIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSJ3aGl0ZSIgZm9udC1zaXplPSIyMCIgZm9udC13ZWlnaHQ9ImJvbGQiPiE8L3RleHQ+PC9zdmc+',
                     iconSize: [32, 32],
@@ -865,7 +919,8 @@
             document.getElementById('loading').classList.add('show');
 
             try {
-                const response = await fetch('http://localhost:5000/api/sos/create', {
+                // Use serverUrl instead of hardcoded localhost
+                const response = await fetch(`${serverUrl}/api/sos/create`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
@@ -895,7 +950,7 @@
                 showNotification(
                     'error',
                     'Connection Error',
-                    'Cannot connect to server. Make sure the server is running at http://localhost:5000',
+                    `Cannot connect to server. Make sure the server is running at ${serverUrl}`,
                     5000
                 );
             } finally {
@@ -926,7 +981,8 @@
             refreshStatus.style.color = '#ff9800';
 
             try {
-                const response = await fetch('http://localhost:5000/api/sos/recent?limit=50&status=active');
+                // Use serverUrl instead of hardcoded localhost
+                const response = await fetch(`${serverUrl}/api/sos/recent?limit=50&status=active`);
                 const data = await response.json();
 
                 displaySOSPosts(data.posts);
@@ -1025,7 +1081,7 @@
             document.getElementById('loading').classList.add('show');
 
             try {
-                const response = await fetch(`http://localhost:5000/api/sos/post/${postId}`);
+                const response = await fetch(`${serverUrl}/api/sos/post/${postId}`);
                 const data = await response.json();
 
                 if (data.post) {
@@ -1076,7 +1132,7 @@
         // Offer help
         async function offerHelp(postId) {
             try {
-                const response = await fetch(`http://localhost:5000/api/sos/post/${postId}/help`, {
+                const response = await fetch(`${serverUrl}/api/sos/post/${postId}/help`, {
                     method: 'POST'
                 });
                 const result = await response.json();
