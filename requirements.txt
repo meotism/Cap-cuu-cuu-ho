@@ -1,1 +1,12 @@
-huggingface_hub
+# Flask web server
+Flask==3.0.0
+flask-cors==4.0.0
+
+# S2 geometry library for spatial indexing
+s2sphere==0.2.5
+
+# OpenStreetMap data fetching
+overpy==0.7
+
+# HTTP requests
+requests==2.31.0
