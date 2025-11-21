@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vietnam Map + SOS Emergency System</title>
+    <title>SOS Emergency System</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -605,15 +605,15 @@
 
                 <div class="form-group">
                     <label>Location *</label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="text" id="sosLocation" readonly placeholder="Click on map to set location" style="cursor: help; flex: 1;">
-                        <button type="button" class="btn" onclick="getCurrentLocation()" style="padding: 10px 15px; white-space: nowrap;">
-                            📍 Current Location
+                    <input type="text" id="sosLocation" readonly placeholder="Click to set location" style="cursor: pointer; margin-bottom: 8px;" onclick="startLocationPicker()">
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button type="button" class="btn" onclick="getCurrentLocation()" style="padding: 8px 12px; font-size: 13px; flex: 1;">
+                            📍 Current
+                        </button>
+                        <button type="button" class="btn" onclick="startLocationPicker()" style="padding: 8px 12px; font-size: 13px; flex: 1;">
+                            🗺️ Pick on Map
                         </button>
                     </div>
-                    <small style="color: #e74c3c; font-size: 13px; display: block; margin-top: 5px; font-weight: 600;">
-                        👉 Click anywhere on the map behind this form to set your location
-                    </small>
                     <small style="color: #999; font-size: 12px; display: block; margin-top: 5px;">
                         📍 Coordinates: Lat: <span id="sosLat">-</span>, Lng: <span id="sosLng">-</span>
                     </small>
@@ -778,8 +778,6 @@
         // SOS Modal functions
         function openSOSModal() {
             document.getElementById('sosModal').classList.add('show');
-            // Enable map click to select location
-            map.on('click', selectSOSLocation);
         }
 
         function closeSOSModal() {
@@ -792,20 +790,50 @@
             document.getElementById('sosDetailModal').classList.remove('show');
         }
 
+        function startLocationPicker() {
+            // Hide modal temporarily
+            const modal = document.getElementById('sosModal');
+            modal.style.display = 'none';
+            
+            // Enable map click
+            map.on('click', selectSOSLocation);
+            
+            // Show instruction notification
+            showNotification(
+                'info',
+                '📍 Select Location',
+                'Click anywhere on the map to set your location',
+                3000
+            );
+            
+            // Change cursor to crosshair
+            document.getElementById('map').style.cursor = 'crosshair';
+        }
+
         function selectSOSLocation(e) {
             selectedLocation = e.latlng;
             updateLocationDisplay(e.latlng.lat, e.latlng.lng);
+            
+            // Remove map click listener
+            map.off('click', selectSOSLocation);
+            
+            // Show modal again
+            const modal = document.getElementById('sosModal');
+            modal.style.display = 'flex';
+            
+            // Reset cursor
+            document.getElementById('map').style.cursor = '';
         }
 
         function getCurrentLocation() {
             const btn = event.target;
             btn.disabled = true;
-            btn.textContent = '⏳ Getting...';
+            btn.innerHTML = '⏳';
             
             if (!navigator.geolocation) {
-                showNotification('❌ Geolocation not supported', 'error');
+                showNotification('error', '❌ Error', 'Geolocation not supported', 3000);
                 btn.disabled = false;
-                btn.textContent = '📍 Current Location';
+                btn.innerHTML = '📍 Current';
                 return;
             }
 
@@ -820,19 +848,19 @@
                     // Center map on current location
                     map.setView([lat, lng], 15);
                     
-                    showNotification('✅ Current location set!', 'success');
+                    showNotification('success', '✅ Success', 'Current location set!', 3000);
                     btn.disabled = false;
-                    btn.textContent = '📍 Current Location';
+                    btn.innerHTML = '📍 Current';
                 },
                 (error) => {
-                    let errorMsg = '❌ Could not get location';
-                    if (error.code === 1) errorMsg = '❌ Location access denied';
-                    if (error.code === 2) errorMsg = '❌ Location unavailable';
-                    if (error.code === 3) errorMsg = '❌ Location timeout';
+                    let errorMsg = 'Could not get location';
+                    if (error.code === 1) errorMsg = 'Location access denied';
+                    if (error.code === 2) errorMsg = 'Location unavailable';
+                    if (error.code === 3) errorMsg = 'Location timeout';
                     
-                    showNotification(errorMsg, 'error');
+                    showNotification('error', '❌ Error', errorMsg, 3000);
                     btn.disabled = false;
-                    btn.textContent = '📍 Current Location';
+                    btn.innerHTML = '📍 Current';
                 }
             );
         }
