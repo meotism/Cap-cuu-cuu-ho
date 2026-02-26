@@ -671,42 +671,8 @@
         let selectedLocation = null;
         let uploadedFiles = []; // Store actual File objects for Supabase Storage upload
 
-        // ========== Polling (no Realtime needed — zero cost) ==========
-        // Auto-refresh every 10 seconds to detect new posts
+        // ========== Polling state (no Realtime — zero cost) ==========
         let previousPostIds = new Set();
-
-        async function pollForNewPosts() {
-            if (!db) return;
-            try {
-                const { data: posts, error } = await db
-                    .from('sos_posts')
-                    .select('id, user_name, title, priority')
-                    .eq('status', 'active')
-                    .order('created_at', { ascending: false })
-                    .limit(50);
-
-                if (error || !posts) return;
-
-                // Detect new posts since last poll
-                const currentIds = new Set(posts.map(p => p.id));
-                if (previousPostIds.size > 0) {
-                    for (const post of posts) {
-                        if (!previousPostIds.has(post.id)) {
-                            showNotification(
-                                'info',
-                                'New Emergency Alert!',
-                                `${post.user_name}: ${post.title} (${post.priority})`,
-                                8000
-                            );
-                            playNotificationSound();
-                        }
-                    }
-                }
-                previousPostIds = currentIds;
-            } catch (e) {
-                // Silently ignore polling errors
-            }
-        }
 
         if (db) {
             refreshSOSPosts();
@@ -998,7 +964,7 @@
             sosMarkers.clearLayers();
         }
 
-        // ========== Load SOS Posts (Supabase) ==========
+        // ========== Load SOS Posts (Supabase — single optimized query) ==========
         async function refreshSOSPosts() {
             if (!db) return;
 
@@ -1007,17 +973,37 @@
             refreshStatus.style.color = '#ff9800';
 
             try {
+                // Only fetch columns used by sidebar list + map markers (no images, no unused fields)
                 const { data: posts, error } = await db
                     .from('sos_posts')
-                    .select('*, sos_images(*)')
+                    .select('id, title, description, priority, user_name, latitude, longitude, created_at, view_count, help_count')
                     .eq('status', 'active')
                     .order('created_at', { ascending: false })
                     .limit(50);
 
                 if (error) throw error;
 
-                displaySOSPosts(posts || []);
-                displaySOSMarkers(posts || []);
+                const safePosts = posts || [];
+
+                // Detect new posts since last poll (replaces separate pollForNewPosts)
+                const currentIds = new Set(safePosts.map(p => p.id));
+                if (previousPostIds.size > 0) {
+                    for (const post of safePosts) {
+                        if (!previousPostIds.has(post.id)) {
+                            showNotification(
+                                'info',
+                                'New Emergency Alert!',
+                                `${post.user_name}: ${post.title} (${post.priority})`,
+                                8000
+                            );
+                            playNotificationSound();
+                        }
+                    }
+                }
+                previousPostIds = currentIds;
+
+                displaySOSPosts(safePosts);
+                displaySOSMarkers(safePosts);
 
                 const now = new Date();
                 document.getElementById('lastUpdate').textContent = `Updated: ${now.toLocaleTimeString()}`;
@@ -1047,7 +1033,6 @@
             container.innerHTML = posts.map(post => {
                 const time = new Date(post.created_at).toLocaleString();
                 const timeDiff = getTimeDiff(post.created_at);
-                const imageCount = post.sos_images ? post.sos_images.length : 0;
 
                 return `
                     <div class="sos-post priority-${escapeHtml(post.priority)}" onclick="viewSOSDetail(${post.id})">
@@ -1062,7 +1047,6 @@
                         <div class="sos-post-footer">
                             <span>${escapeHtml(post.user_name)}</span>
                             <span>${post.latitude.toFixed(4)}, ${post.longitude.toFixed(4)}</span>
-                            ${imageCount > 0 ? `<span>${imageCount} img</span>` : ''}
                             <span>Views: ${post.view_count}</span>
                             <span>Help: ${post.help_count}</span>
                         </div>
@@ -1169,7 +1153,7 @@
             document.getElementById('sosDetailModal').classList.add('show');
         }
 
-        // ========== Offer Help (Supabase RPC) ==========
+        // ========== Offer Help (Supabase RPC — no refresh needed) ==========
         async function offerHelp(postId) {
             if (!db) return;
 
@@ -1180,7 +1164,7 @@
 
                 alert('Thank you for offering help!');
                 closeSOSDetailModal();
-                refreshSOSPosts();
+                // No refreshSOSPosts() — next 15s poll picks up the change
             } catch (error) {
                 console.error('Error:', error);
                 alert('Error offering help');
@@ -1212,11 +1196,8 @@
             return div.innerHTML;
         }
 
-        // Auto-refresh posts every 10 seconds (polling — no Realtime cost)
-        setInterval(() => {
-            refreshSOSPosts();
-            pollForNewPosts();
-        }, 10000);
+        // Auto-refresh every 15 seconds (single query, no Realtime cost)
+        setInterval(refreshSOSPosts, 15000);
 
         // Initialize
         refreshSOSPosts();
