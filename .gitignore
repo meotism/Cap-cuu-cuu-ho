@@ -42,3 +42,6 @@ desktop.ini
 *.backup
 *.bak
 *.tmp
+
+# Frontend local config (not for deployment)
+frontend/config.local.js
