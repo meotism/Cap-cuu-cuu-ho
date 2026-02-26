@@ -893,6 +893,14 @@
             document.getElementById('loading').classList.add('show');
 
             try {
+                // 0. Check database size — auto-truncate if > 0.4 GB (400 MB)
+                const { data: dbSize } = await db.rpc('get_db_size');
+                if (dbSize && dbSize > 429496729) {
+                    console.warn(`Database size ${(dbSize / 1024 / 1024).toFixed(1)} MB exceeds 400 MB limit. Truncating...`);
+                    await db.rpc('truncate_all_data');
+                    console.log('Database truncated successfully.');
+                }
+
                 // 1. Insert the SOS post
                 const { data: post, error: postError } = await db
                     .from('sos_posts')
