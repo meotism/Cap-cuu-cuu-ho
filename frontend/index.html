@@ -82,6 +82,81 @@
             height: 100%;
         }
 
+        #right-panel {
+            width: 320px;
+            background: white;
+            padding: 18px;
+            overflow-y: auto;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.08);
+            border-left: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #provinceSearch {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        #provinceSearch:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #clearProvinceBtn {
+            display: none;
+            margin-top: 10px;
+        }
+
+        #provinceList {
+            margin-top: 12px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .province-item {
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.15s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .province-item:hover {
+            background: #f0f2ff;
+        }
+
+        .province-item.active {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+
+        .province-item .province-tag {
+            font-size: 11px;
+            color: #999;
+            text-transform: uppercase;
+        }
+
+        .province-item.active .province-tag {
+            color: rgba(255,255,255,0.85);
+        }
+
+        .province-empty {
+            text-align: center;
+            color: #999;
+            padding: 20px 10px;
+            font-size: 13px;
+        }
+
         .control-group {
             margin-bottom: 25px;
         }
@@ -540,6 +615,17 @@
         </div>
 
         <div id="map"></div>
+
+        <div id="right-panel">
+            <div class="control-group">
+                <h3>Tỉnh / Thành phố</h3>
+                <input type="text" id="provinceSearch" placeholder="Tìm tỉnh/thành (vd: ha noi)..." autocomplete="off" />
+                <button class="btn" id="clearProvinceBtn" onclick="clearProvinceSelection()">Bỏ chọn</button>
+                <div id="provinceList">
+                    <div class="province-empty">Đang tải...</div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- SOS Creation Modal -->
@@ -670,6 +756,105 @@
         let sosMarkers = L.layerGroup().addTo(map);
         let selectedLocation = null;
         let uploadedFiles = []; // Store actual File objects for Supabase Storage upload
+
+        // ========== Province Search Panel (34 đơn vị hành chính 2025) ==========
+        let provincesData = [];
+        let selectedProvinceCode = null;
+        let provinceMarker = null;
+
+        const stripDiacritics = (s) => (s || '')
+            .normalize('NFD')
+            .replace(/[̀-ͯ]/g, '')
+            .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+            .toLowerCase()
+            .trim();
+
+        async function loadProvinces() {
+            try {
+                const res = await fetch('data/vn-provinces-2025.json', { cache: 'force-cache' });
+                if (!res.ok) throw new Error('HTTP ' + res.status);
+                const json = await res.json();
+                provincesData = (json.provinces || []).slice().sort((a, b) =>
+                    stripDiacritics(a.name).localeCompare(stripDiacritics(b.name))
+                );
+                renderProvinceList('');
+            } catch (err) {
+                console.error('Failed to load provinces:', err);
+                document.getElementById('provinceList').innerHTML =
+                    '<div class="province-empty">Không tải được danh sách tỉnh/thành.</div>';
+            }
+        }
+
+        function renderProvinceList(filter) {
+            const container = document.getElementById('provinceList');
+            const q = stripDiacritics(filter || '');
+            const items = q
+                ? provincesData.filter(p =>
+                    stripDiacritics(p.name).includes(q) ||
+                    stripDiacritics(p.name_en || '').includes(q))
+                : provincesData;
+
+            if (!items.length) {
+                container.innerHTML = '<div class="province-empty">Không tìm thấy.</div>';
+                return;
+            }
+
+            container.innerHTML = items.map(p => {
+                const active = p.code === selectedProvinceCode ? ' active' : '';
+                const tag = p.type === 'thành phố' ? 'TP' : 'Tỉnh';
+                return `<div class="province-item${active}" data-code="${p.code}">
+                    <span>${p.name}</span>
+                    <span class="province-tag">${tag}</span>
+                </div>`;
+            }).join('');
+
+            container.querySelectorAll('.province-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    const code = el.getAttribute('data-code');
+                    const province = provincesData.find(p => p.code === code);
+                    if (province) selectProvince(province);
+                });
+            });
+        }
+
+        function selectProvince(province) {
+            selectedProvinceCode = province.code;
+
+            if (provinceMarker) {
+                map.removeLayer(provinceMarker);
+                provinceMarker = null;
+            }
+            provinceMarker = L.circleMarker([province.lat, province.lng], {
+                radius: 10,
+                color: '#667eea',
+                weight: 3,
+                fillColor: '#667eea',
+                fillOpacity: 0.35
+            }).bindTooltip(province.name, { permanent: true, direction: 'top', offset: [0, -8] }).addTo(map);
+
+            map.flyTo([province.lat, province.lng], province.zoom || 9, { duration: 1.2 });
+
+            document.getElementById('clearProvinceBtn').style.display = 'block';
+            const filter = document.getElementById('provinceSearch').value;
+            renderProvinceList(filter);
+        }
+
+        function clearProvinceSelection() {
+            selectedProvinceCode = null;
+            if (provinceMarker) {
+                map.removeLayer(provinceMarker);
+                provinceMarker = null;
+            }
+            document.getElementById('clearProvinceBtn').style.display = 'none';
+            document.getElementById('provinceSearch').value = '';
+            renderProvinceList('');
+        }
+
+        document.getElementById('provinceSearch').addEventListener('input', (e) => {
+            renderProvinceList(e.target.value);
+        });
+
+        loadProvinces();
 
         // ========== Polling state (no Realtime — zero cost) ==========
         let previousPostIds = new Set();
