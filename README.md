@@ -2,7 +2,8 @@
 
 Real-time emergency post system with Vietnam map integration using OpenStreetMap and Google S2 geometry.
 
-Demo: https://docs-virid-zeta.vercel.app/
+Demo (Vercel): https://docs-virid-zeta.vercel.app/
+Demo (GitHub Pages): https://meotism.github.io/Cap-cuu-cuu-ho/
 
 ## 🚀 Quick Start
 
@@ -57,6 +58,25 @@ Navigate to: **http://localhost:5000**
 - ✅ Road data fetching and storage
 - ✅ Vietnam cities presets
 - ✅ Spatial queries
+
+### Administrative Boundaries (34 provinces + wards, 2025)
+- ✅ Tìm kiếm 34 tỉnh/thành (không dấu) — chuẩn theo sáp nhập 1/7/2025
+- ✅ Dropdown chọn phường/xã (3.321 đơn vị cấp xã)
+- ✅ **Vẽ ranh giới đa giác (polygon) tô màu** của tỉnh & phường/xã trên bản đồ
+- ✅ Lazy-load GeoJSON theo từng tỉnh (mượt, không tải toàn quốc một lần)
+
+#### Dữ liệu & tái tạo
+Tên/mã hành chính và ranh giới GeoJSON được sinh offline từ
+[thanglequoc/vietnamese-provinces-database](https://github.com/thanglequoc/vietnamese-provinces-database):
+
+```bash
+pip install shapely
+python scripts/build_provinces.py     # tên tỉnh/xã -> frontend/data/vn-provinces-2025.json
+python scripts/build_boundaries.py    # ranh giới GeoJSON -> frontend/data/geo/
+```
+
+Output (đã commit, simplify ~7MB tổng): `frontend/data/geo/provinces.json` (outline 34 tỉnh) và
+`frontend/data/geo/wards/<province_code>.json` (ranh giới phường/xã theo tỉnh).
 
 ## 🔧 API Endpoints
 
@@ -117,9 +137,30 @@ Tables:
 - Level 15 (~1km) - Default for indexing
 - Level 17 (~250m) - High precision
 
+## 🚢 Deploy (static — no GitHub Actions)
+
+The frontend is a static site. The deployable copy lives in `docs/` (Supabase config hardcoded there).
+
+**GitHub Pages via static `gh-pages` branch** (không cần Actions):
+```bash
+git add docs && git commit -m "update site"
+./scripts/deploy_ghpages.sh          # publish docs/ -> branch gh-pages (root)
+# Lần đầu: Settings → Pages → Branch = gh-pages / (root) → Save
+```
+URL: https://meotism.github.io/Cap-cuu-cuu-ho/
+
+**Vercel** (đang chạy): tự deploy từ thư mục `docs/` khi push `main`.
+
+> Khi đổi `frontend/`, nhớ sync sang `docs/` (script build_*.py tự copy phần data; còn `index.html` thì `cp frontend/index.html docs/index.html`). **Đừng** ghi đè `docs/config.js` bằng bản placeholder của `frontend/`.
+
 ## 📝 License
 
-MIT License
+MIT License (code).
+
+**Dữ liệu hành chính & ranh giới**: sinh từ
+[thanglequoc/vietnamese-provinces-database](https://github.com/thanglequoc/vietnamese-provinces-database)
+(MIT, © Thang Le Quoc). Ranh giới GIS có nguồn gốc từ *Bản đồ hành chính Việt Nam* do
+Nhà xuất bản Tài nguyên – Môi trường và Bản đồ Việt Nam phát hành.
 
 ## 🤝 Contributing
 

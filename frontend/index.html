@@ -157,6 +157,35 @@
             font-size: 13px;
         }
 
+        #wardPanel {
+            margin-top: 12px;
+        }
+
+        #wardLabel {
+            display: block;
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        #wardSelect {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            box-sizing: border-box;
+            background: white;
+            cursor: pointer;
+        }
+
+        #wardSelect:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
         .control-group {
             margin-bottom: 25px;
         }
@@ -624,6 +653,13 @@
                 <div id="provinceList">
                     <div class="province-empty">Đang tải...</div>
                 </div>
+                <div id="boundaryLoading" style="display:none;font-size:12px;color:#667eea;margin-top:6px;">Đang tải ranh giới…</div>
+                <div id="wardPanel" style="display:none;">
+                    <label for="wardSelect" id="wardLabel">Phường/Xã</label>
+                    <select id="wardSelect">
+                        <option value="" disabled selected>— Chọn phường/xã —</option>
+                    </select>
+                </div>
             </div>
         </div>
     </div>
@@ -760,7 +796,24 @@
         // ========== Province Search Panel (34 đơn vị hành chính 2025) ==========
         let provincesData = [];
         let selectedProvinceCode = null;
-        let provinceMarker = null;
+        let provinceMarker = null; // legacy dot marker (kept for cleanup compatibility)
+        let currentProvince = null; // province whose wards are shown in #wardSelect
+
+        // --- Boundary polygon layers (replace the legacy dot markers) ---
+        let provinceBoundaryLayer = null; // L.geoJSON outline of the selected province
+        let wardBoundaryLayer = null;     // L.geoJSON of the selected province's wards
+        let wardFeatureByCode = {};       // ward code -> its Leaflet layer (for dropdown selection)
+        let selectedWardLayer = null;     // currently highlighted ward polygon
+        let provincesGeoCache = null;     // cached provinces.json FeatureCollection
+
+        // Shared canvas renderer for boundary polygons (better perf with many polygons)
+        const boundaryRenderer = L.canvas({ padding: 0.5 });
+
+        // Polygon styles (applied via Leaflet options, not CSS)
+        const provinceOutlineStyle = { color: '#4b3fd6', weight: 2, fill: false, dashArray: '4 3' };
+        const wardDefaultStyle = { color: '#667eea', weight: 1, fillColor: '#667eea', fillOpacity: 0.08 };
+        const wardHoverStyle = { weight: 2, fillOpacity: 0.25 };
+        const wardSelectedStyle = { color: '#4b3fd6', weight: 3, fillColor: '#667eea', fillOpacity: 0.45 };
 
         const stripDiacritics = (s) => (s || '')
             .normalize('NFD')
@@ -817,41 +870,167 @@
             });
         }
 
-        function selectProvince(province) {
+        function setBoundaryLoading(on) {
+            const el = document.getElementById('boundaryLoading');
+            if (el) el.style.display = on ? 'block' : 'none';
+        }
+
+        // Remove any boundary/marker layers currently on the map.
+        function clearBoundaryLayers() {
+            if (provinceBoundaryLayer) { map.removeLayer(provinceBoundaryLayer); provinceBoundaryLayer = null; }
+            if (wardBoundaryLayer) { map.removeLayer(wardBoundaryLayer); wardBoundaryLayer = null; }
+            if (provinceMarker) { map.removeLayer(provinceMarker); provinceMarker = null; }
+            selectedWardLayer = null;
+            wardFeatureByCode = {};
+        }
+
+        // Selecting a province now draws COLORED BOUNDARY POLYGONS (province outline +
+        // ward fills) instead of a single dot marker. Per-province ward GeoJSON is
+        // lazy-loaded from data/geo/wards/<code>.json on demand.
+        async function selectProvince(province) {
             selectedProvinceCode = province.code;
+            currentProvince = province;
 
-            if (provinceMarker) {
-                map.removeLayer(provinceMarker);
-                provinceMarker = null;
-            }
-            provinceMarker = L.circleMarker([province.lat, province.lng], {
-                radius: 10,
-                color: '#667eea',
-                weight: 3,
-                fillColor: '#667eea',
-                fillOpacity: 0.35
-            }).bindTooltip(province.name, { permanent: true, direction: 'top', offset: [0, -8] }).addTo(map);
+            // Remove any existing boundary layers / legacy dot marker.
+            clearBoundaryLayers();
 
-            map.flyTo([province.lat, province.lng], province.zoom || 9, { duration: 1.2 });
-
+            // UI: highlight in list, reveal clear button & fill the ward dropdown.
             document.getElementById('clearProvinceBtn').style.display = 'block';
             const filter = document.getElementById('provinceSearch').value;
             renderProvinceList(filter);
+            populateWards(province); // fills #wardSelect (existing behavior)
+
+            setBoundaryLoading(true);
+            try {
+                // 1) Province outline (relative URL so it works on a GitHub Pages subpath).
+                if (!provincesGeoCache) {
+                    const pRes = await fetch('data/geo/provinces.json', { cache: 'force-cache' });
+                    if (!pRes.ok) throw new Error('provinces.json HTTP ' + pRes.status);
+                    provincesGeoCache = await pRes.json();
+                }
+                const provFeature = (provincesGeoCache.features || [])
+                    .find(f => f.properties && f.properties.code === province.code);
+                if (provFeature) {
+                    provinceBoundaryLayer = L.geoJSON(provFeature, {
+                        style: provinceOutlineStyle,
+                        renderer: boundaryRenderer,
+                        interactive: false
+                    }).addTo(map);
+                }
+
+                // 2) Ward polygons for this province (lazy-loaded, relative URL).
+                wardFeatureByCode = {};
+                const wRes = await fetch(`data/geo/wards/${province.code}.json`, { cache: 'force-cache' });
+                if (!wRes.ok) throw new Error('wards HTTP ' + wRes.status);
+                const wardFc = await wRes.json();
+                wardBoundaryLayer = L.geoJSON(wardFc, {
+                    renderer: boundaryRenderer,
+                    style: () => wardDefaultStyle,
+                    onEachFeature: (feat, layer) => {
+                        wardFeatureByCode[feat.properties.code] = layer;
+                        layer.bindTooltip(feat.properties.full_name, { sticky: true });
+                        layer.on('mouseover', () => layer.setStyle(wardHoverStyle));
+                        layer.on('mouseout', () => { if (layer !== selectedWardLayer) layer.setStyle(wardDefaultStyle); });
+                        layer.on('click', () => {
+                            const w = (province.wards || []).find(x => x.code === feat.properties.code);
+                            if (w) {
+                                document.getElementById('wardSelect').value = w.code;
+                                selectWard(province, w);
+                            }
+                        });
+                    }
+                }).addTo(map);
+
+                // 3) Zoom to the best available bounds.
+                if (wardBoundaryLayer && wardBoundaryLayer.getBounds().isValid()) {
+                    map.fitBounds(wardBoundaryLayer.getBounds(), { padding: [20, 20] });
+                } else if (provinceBoundaryLayer && provinceBoundaryLayer.getBounds().isValid()) {
+                    map.fitBounds(provinceBoundaryLayer.getBounds(), { padding: [20, 20] });
+                } else {
+                    map.flyTo([province.lat, province.lng], province.zoom || 9, { duration: 1.2 });
+                }
+            } catch (err) {
+                console.error('Failed to load boundary geometry for province', province.code, err);
+                // Graceful fallback so the panel never gets stuck on the loader.
+                if (provinceBoundaryLayer && provinceBoundaryLayer.getBounds().isValid()) {
+                    map.fitBounds(provinceBoundaryLayer.getBounds(), { padding: [20, 20] });
+                } else {
+                    map.flyTo([province.lat, province.lng], province.zoom || 9, { duration: 1.2 });
+                }
+            } finally {
+                setBoundaryLoading(false);
+            }
+        }
+
+        function populateWards(province) {
+            currentProvince = province;
+            const select = document.getElementById('wardSelect');
+            const panel = document.getElementById('wardPanel');
+            const wards = province.wards || [];
+
+            // Reset to placeholder
+            select.innerHTML = '<option value="" disabled selected>— Chọn phường/xã —</option>';
+
+            if (!wards.length) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            wards.forEach(w => {
+                const opt = document.createElement('option');
+                opt.value = w.code;
+                opt.textContent = w.full_name; // shows "Phường ..."/"Xã ..."
+                select.appendChild(opt);
+            });
+            panel.style.display = 'block';
+        }
+
+        function selectWard(province, ward) {
+            // Ward selection now HIGHLIGHTS the real boundary polygon
+            // (previously it dropped a dot marker at the province center).
+            const layer = wardFeatureByCode[ward.code];
+            if (layer) {
+                // Reset the previously selected ward back to the default style.
+                if (selectedWardLayer && selectedWardLayer !== layer) {
+                    selectedWardLayer.setStyle(wardDefaultStyle);
+                }
+                selectedWardLayer = layer;
+                layer.setStyle(wardSelectedStyle);
+                layer.bringToFront && layer.bringToFront();
+                if (layer.getBounds && layer.getBounds().isValid()) {
+                    map.fitBounds(layer.getBounds(), { padding: [40, 40], maxZoom: 14 });
+                }
+                layer.openTooltip && layer.openTooltip();
+            } else {
+                // This ward had no boundary geometry (wards layer still loading or
+                // geometry missing). Fall back to a centered fly-to.
+                map.flyTo([province.lat, province.lng], Math.min((province.zoom || 9) + 2, 14), { duration: 1.0 });
+            }
         }
 
         function clearProvinceSelection() {
             selectedProvinceCode = null;
-            if (provinceMarker) {
-                map.removeLayer(provinceMarker);
-                provinceMarker = null;
-            }
+            currentProvince = null;
+            // Remove boundary polygons + legacy marker and reset boundary state.
+            clearBoundaryLayers();
+            setBoundaryLoading(false);
             document.getElementById('clearProvinceBtn').style.display = 'none';
             document.getElementById('provinceSearch').value = '';
+            document.getElementById('wardPanel').style.display = 'none';
+            document.getElementById('wardSelect').innerHTML =
+                '<option value="" disabled selected>— Chọn phường/xã —</option>';
             renderProvinceList('');
         }
 
         document.getElementById('provinceSearch').addEventListener('input', (e) => {
             renderProvinceList(e.target.value);
+        });
+
+        document.getElementById('wardSelect').addEventListener('change', (e) => {
+            if (!currentProvince) return;
+            const code = e.target.value;
+            const ward = (currentProvince.wards || []).find(w => w.code === code);
+            if (ward) selectWard(currentProvince, ward);
         });
 
         loadProvinces();

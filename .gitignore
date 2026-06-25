@@ -45,3 +45,8 @@ desktop.ini
 
 # Frontend local config (not for deployment)
 frontend/config.local.js
+
+# Raw GIS source dumps (large; re-downloadable via scripts/build_boundaries.py header URL)
+# The committed, simplified output lives in frontend/data/geo and docs/data/geo instead.
+scripts/raw/*.zip
+scripts/raw/*.sql
